@@ -155,7 +155,6 @@ attempt_model() {
     ORCHESTRATOR_MAIL_TIMEOUT_SECONDS="$mail_timeout_seconds" \
     bash "$isolated_script" >"$log_path" 2>&1
   local status="$?"
-  set -e
 
   cat "$log_path"
   return "$status"
