@@ -15,6 +15,9 @@ required_environment ORCHESTRATOR_TEST_CITY_TOML
 
 codex_provider_mode="${ORCHESTRATOR_CODEX_PROVIDER_MODE:-real}"
 expected_codex_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.4-nano}"
+agent_run_timeout_seconds="${ORCHESTRATOR_AGENT_RUN_TIMEOUT_SECONDS:-60}"
+bead_close_timeout_seconds="${ORCHESTRATOR_BEAD_CLOSE_TIMEOUT_SECONDS:-60}"
+mail_timeout_seconds="${ORCHESTRATOR_MAIL_TIMEOUT_SECONDS:-60}"
 
 platform_home="$(
   python3 - <<'PY'
@@ -381,7 +384,7 @@ wait_for_agent_run() {
   local target_agent="$1"
   local bead_id="$2"
   local log_path="$city_dir/.gc/cascade-test/agent-runs.tsv"
-  local deadline=$((SECONDS + 60))
+  local deadline=$((SECONDS + agent_run_timeout_seconds))
   until [ -f "$log_path" ] && grep -Fq "$target_agent	$bead_id" "$log_path"; do
     if [ "$SECONDS" -ge "$deadline" ]; then
       printf 'expected %s to run %s\n' "$target_agent" "$bead_id" >&2
@@ -436,7 +439,7 @@ open_gate() {
 
 wait_for_bead_closed() {
   local bead_id="$1"
-  local deadline=$((SECONDS + 60))
+  local deadline=$((SECONDS + bead_close_timeout_seconds))
   until run_isolated gc --city "$city_dir" bd show "$bead_id" --json \
     | jq -e '.[0].status == "closed"' >/dev/null; do
     if [ "$SECONDS" -ge "$deadline" ]; then
@@ -449,7 +452,7 @@ wait_for_bead_closed() {
 
 wait_for_bead_closed_event() {
   local bead_id="$1"
-  local deadline=$((SECONDS + 60))
+  local deadline=$((SECONDS + bead_close_timeout_seconds))
   until run_isolated gc --city "$city_dir" events --after 0 \
     | jq -e --arg bead_id "$bead_id" \
       'select(.type == "bead.closed" and .subject == $bead_id)' >/dev/null; do
@@ -465,7 +468,7 @@ wait_for_bead_closed_event() {
 }
 
 wait_for_mayor_mail() {
-  local deadline=$((SECONDS + 60))
+  local deadline=$((SECONDS + mail_timeout_seconds))
   until run_isolated gc --city "$city_dir" mail inbox mayor \
     | grep -Fq "cascade complete: orchestrator-integration"; do
     if [ "$SECONDS" -ge "$deadline" ]; then

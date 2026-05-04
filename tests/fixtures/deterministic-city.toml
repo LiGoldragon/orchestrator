@@ -34,7 +34,7 @@ skip = [
 [providers.codex-live]
 base = ""
 command = "codex"
-args = ["--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-nano", "-c", "model_reasoning_effort=low"]
+args = ["exec", "--ignore-user-config", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-nano", "-c", "model_reasoning_effort=low"]
 prompt_mode = "arg"
 ready_delay_ms = 3000
 process_names = ["codex", "codex-raw"]
