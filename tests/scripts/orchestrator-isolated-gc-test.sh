@@ -174,6 +174,8 @@ set -euo pipefail
 
 real_codex_binary="$host_codex_binary"
 log_dir="$codex_invocation_log_dir"
+export CODEX_HOME="$codex_home"
+export GIT_CONFIG_GLOBAL="$git_config_global"
 mkdir -p "\$log_dir"
 
 invocation_id="\$(date +%s)-\$\$"

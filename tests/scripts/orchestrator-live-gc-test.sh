@@ -41,8 +41,9 @@ render_fixture_for_model() {
   local rendered_fixture="$2"
   local codex_model="$3"
   local tmux_socket="$4"
+  local codex_command="$5"
 
-  python3 - "$source_fixture" "$rendered_fixture" "$codex_model" "$tmux_socket" <<'PY'
+  python3 - "$source_fixture" "$rendered_fixture" "$codex_model" "$tmux_socket" "$codex_command" <<'PY'
 import pathlib
 import sys
 
@@ -50,6 +51,7 @@ source_path = pathlib.Path(sys.argv[1])
 rendered_path = pathlib.Path(sys.argv[2])
 codex_model = sys.argv[3]
 tmux_socket = sys.argv[4]
+codex_command = sys.argv[5]
 
 rendered_lines = []
 current_table = ""
@@ -111,6 +113,8 @@ if not session_table_seen:
 rendered_text = "\n".join(rendered_lines) + "\n"
 for known_model in ("gpt-5.4-nano", "gpt-5.4-mini"):
     rendered_text = rendered_text.replace(known_model, codex_model)
+rendered_text = rendered_text.replace('command = "codex"', f'command = "{codex_command}"')
+rendered_text = rendered_text.replace('start_command = "codex exec ', f'start_command = "{codex_command} exec ')
 
 rendered_path.write_text(rendered_text)
 PY
@@ -128,13 +132,14 @@ attempt_model() {
   local attempt_root="$live_root/$codex_model"
   local rendered_fixture="$attempt_root/deterministic-city.toml"
   local log_path="$attempt_root/run.log"
+  local codex_command="$attempt_root/gc/bin/codex"
   local socket_model_segment
   local tmux_socket
 
   mkdir -p "$attempt_root"
   socket_model_segment="$(safe_socket_segment "$codex_model")"
   tmux_socket="$(safe_socket_segment "$tmux_socket_prefix")-$socket_model_segment-$$"
-  render_fixture_for_model "$ORCHESTRATOR_TEST_CITY_TOML" "$rendered_fixture" "$codex_model" "$tmux_socket"
+  render_fixture_for_model "$ORCHESTRATOR_TEST_CITY_TOML" "$rendered_fixture" "$codex_model" "$tmux_socket" "$codex_command"
 
   printf 'orchestrator live integration: trying Codex model %s with tmux socket %s\n' \
     "$codex_model" "$tmux_socket"
