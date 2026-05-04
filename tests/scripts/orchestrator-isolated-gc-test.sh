@@ -207,8 +207,21 @@ EOF
 }
 
 codex_invocation_has_failed() {
-  [ -d "$codex_invocation_log_dir" ] \
-    && grep -R -Eq '^status=[1-9][0-9]*$' "$codex_invocation_log_dir" 2>/dev/null
+  local metadata_path
+  local status
+
+  [ -d "$codex_invocation_log_dir" ] || return 1
+
+  for metadata_path in "$codex_invocation_log_dir"/*.meta; do
+    [ -e "$metadata_path" ] || continue
+    status="$(sed -n 's/^status=//p' "$metadata_path" | tail -n 1)"
+    case "$status" in
+      "" | 0 | 130 | 143) ;;
+      *) return 0 ;;
+    esac
+  done
+
+  return 1
 }
 
 print_codex_invocation_logs() {
