@@ -59,6 +59,8 @@ city_dir="$root/city"
 state_path="$root/orchestrator.redb"
 bin_dir="$root/bin"
 git_config_global="$gc_home/gitconfig"
+bash_path="$(command -v bash)"
+sh_path="$(command -v sh)"
 
 mkdir -p "$gc_home" "$runtime_dir" "$temporary_dir" "$city_dir" "$bin_dir"
 touch "$git_config_global"
@@ -83,8 +85,8 @@ EOF
 
 install_host_command_shims() {
   for command_name in systemctl launchctl; do
-    cat >"$bin_dir/$command_name" <<'EOF'
-#!/usr/bin/env sh
+    cat >"$bin_dir/$command_name" <<EOF
+#!$sh_path
 exit 0
 EOF
     chmod +x "$bin_dir/$command_name"
@@ -92,8 +94,8 @@ EOF
 }
 
 install_codex_shim() {
-  cat >"$bin_dir/codex" <<'EOF'
-#!/usr/bin/env bash
+  printf '#!%s\n' "$bash_path" >"$bin_dir/codex"
+  cat >>"$bin_dir/codex" <<'EOF'
 set -euo pipefail
 
 expected_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.3-codex-spark}"
