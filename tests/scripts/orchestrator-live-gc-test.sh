@@ -48,7 +48,11 @@ for line in source_path.read_text().splitlines():
     else:
         rendered_lines.append(line)
 
-rendered_path.write_text("\n".join(rendered_lines) + "\n")
+rendered_text = "\n".join(rendered_lines) + "\n"
+for known_model in ("gpt-5.4-nano", "gpt-5.4-mini"):
+    rendered_text = rendered_text.replace(known_model, codex_model)
+
+rendered_path.write_text(rendered_text)
 PY
 }
 

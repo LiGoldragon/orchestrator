@@ -31,6 +31,15 @@ skip = [
   "wisp-compact",
 ]
 
+[providers.codex-live]
+command = "codex"
+args = ["--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-nano", "-c", "model_reasoning_effort=low"]
+prompt_mode = "arg"
+ready_delay_ms = 3000
+process_names = ["codex", "codex-raw"]
+supports_hooks = false
+instructions_file = "AGENTS.md"
+
 [[agent]]
 name = "mayor"
 start_command = "bash \"$GC_CITY/agents/cascade-mail-recorder/run.sh\""
@@ -40,39 +49,27 @@ process_names = ["bash", "sh"]
 
 [[agent]]
 name = "cascade-tester-one"
-provider = "codex"
+provider = "codex-live"
 prompt_template = "agents/cascade-test-agent/prompt.template.md"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-one --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
-[agent.option_defaults]
-model = "gpt-5.4-nano"
-effort = "low"
-permission_mode = "unrestricted"
 
 [[agent]]
 name = "cascade-tester-two"
-provider = "codex"
+provider = "codex-live"
 prompt_template = "agents/cascade-test-agent/prompt.template.md"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-two --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
-[agent.option_defaults]
-model = "gpt-5.4-nano"
-effort = "low"
-permission_mode = "unrestricted"
 
 [[agent]]
 name = "cascade-tester-three"
-provider = "codex"
+provider = "codex-live"
 prompt_template = "agents/cascade-test-agent/prompt.template.md"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-three --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
-[agent.option_defaults]
-model = "gpt-5.4-nano"
-effort = "low"
-permission_mode = "unrestricted"
 
 [[named_session]]
 template = "mayor"
