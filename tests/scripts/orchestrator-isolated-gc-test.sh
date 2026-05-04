@@ -14,7 +14,7 @@ required_environment ORCHESTRATOR_BIN
 required_environment ORCHESTRATOR_TEST_CITY_TOML
 
 codex_provider_mode="${ORCHESTRATOR_CODEX_PROVIDER_MODE:-real}"
-expected_codex_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.3-codex-spark}"
+expected_codex_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.4-nano}"
 
 platform_home="$(
   python3 - <<'PY'
@@ -29,7 +29,18 @@ if [ -n "$platform_home" ] && [ "$real_home" != "$platform_home" ]; then
   real_home="$platform_home"
 fi
 
-root="$(mktemp -d "${TMPDIR:-/tmp}/orchestrator-gc.XXXXXX")"
+host_codex_home="${ORCHESTRATOR_HOST_CODEX_HOME:-${CODEX_HOME:-$real_home/.codex}}"
+
+if [ -n "${ORCHESTRATOR_TEST_ROOT:-}" ]; then
+  root="$ORCHESTRATOR_TEST_ROOT"
+  if [ -e "$root" ] && [ -n "$(find "$root" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+    printf 'orchestrator integration: test root is not empty: %s\n' "$root" >&2
+    exit 1
+  fi
+  mkdir -p "$root"
+else
+  root="$(mktemp -d "${TMPDIR:-/tmp}/orchestrator-gc.XXXXXX")"
+fi
 supervisor_pid=""
 orchestrator_pid=""
 
@@ -46,6 +57,8 @@ cleanup() {
   fi
   if [ "${ORCHESTRATOR_KEEP_TEST_ROOT:-}" = "1" ]; then
     printf 'orchestrator integration: kept test root %s\n' "$root" >&2
+  elif [ "${ORCHESTRATOR_PRESERVE_TEST_ROOT:-}" = "1" ]; then
+    true
   else
     rm -rf "$root"
   fi
@@ -58,11 +71,12 @@ temporary_dir="$root/tmp"
 city_dir="$root/city"
 state_path="$root/orchestrator.redb"
 bin_dir="$root/bin"
+codex_home="$root/codex-home"
 git_config_global="$gc_home/gitconfig"
 bash_path="$(command -v bash)"
 sh_path="$(command -v sh)"
 
-mkdir -p "$gc_home" "$runtime_dir" "$temporary_dir" "$city_dir" "$bin_dir"
+mkdir -p "$gc_home" "$runtime_dir" "$temporary_dir" "$city_dir" "$bin_dir" "$codex_home"
 touch "$git_config_global"
 
 seed_supervisor_config() {
@@ -154,8 +168,10 @@ run_isolated() {
     GC_HOME="$gc_home" \
     XDG_RUNTIME_DIR="$runtime_dir" \
     DOLT_ROOT_PATH="$gc_home" \
+    CODEX_HOME="$codex_home" \
     GIT_CONFIG_GLOBAL="$git_config_global" \
     ORCHESTRATOR_EXPECTED_CODEX_MODEL="$expected_codex_model" \
+    OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
     BEADS_DOLT_AUTO_START=0 \
     "$@"
 }
@@ -172,8 +188,10 @@ exec_isolated() {
     GC_HOME="$gc_home" \
     XDG_RUNTIME_DIR="$runtime_dir" \
     DOLT_ROOT_PATH="$gc_home" \
+    CODEX_HOME="$codex_home" \
     GIT_CONFIG_GLOBAL="$git_config_global" \
     ORCHESTRATOR_EXPECTED_CODEX_MODEL="$expected_codex_model" \
+    OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
     BEADS_DOLT_AUTO_START=0 \
     "$@"
 }
@@ -182,6 +200,24 @@ seed_dolt_identity() {
   mkdir -p "$gc_home/.dolt"
   printf '{"user.name":"gc-test","user.email":"gc-test@test.local"}' \
     >"$gc_home/.dolt/config_global.json"
+}
+
+seed_codex_home() {
+  mkdir -p "$codex_home"
+
+  for codex_file in auth.json config.toml; do
+    if [ -f "$host_codex_home/$codex_file" ]; then
+      cp -p "$host_codex_home/$codex_file" "$codex_home/$codex_file"
+    fi
+  done
+
+  if [ "$codex_provider_mode" = "real" ] \
+    && [ ! -f "$codex_home/auth.json" ] \
+    && [ -z "${OPENAI_API_KEY:-}" ]; then
+    printf 'orchestrator integration: real Codex mode needs %s/auth.json or OPENAI_API_KEY\n' \
+      "$host_codex_home" >&2
+    exit 1
+  fi
 }
 
 start_isolated_supervisor() {
@@ -411,6 +447,23 @@ wait_for_bead_closed() {
   done
 }
 
+wait_for_bead_closed_event() {
+  local bead_id="$1"
+  local deadline=$((SECONDS + 60))
+  until run_isolated gc --city "$city_dir" events --after 0 \
+    | jq -e --arg bead_id "$bead_id" \
+      'select(.type == "bead.closed" and .subject == $bead_id)' >/dev/null; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      printf 'expected bead.closed event for %s\n' "$bead_id" >&2
+      run_isolated gc --city "$city_dir" events --after 0 >&2 || true
+      cat "$root/orchestrator.log" >&2 || true
+      cat "$root/supervisor.log" >&2 || true
+      exit 1
+    fi
+    sleep 0.2
+  done
+}
+
 wait_for_mayor_mail() {
   local deadline=$((SECONDS + 60))
   until run_isolated gc --city "$city_dir" mail inbox mayor \
@@ -425,6 +478,7 @@ wait_for_mayor_mail() {
 
 seed_supervisor_config
 seed_dolt_identity
+seed_codex_home
 install_host_command_shims
 if [ "$codex_provider_mode" = "shim" ]; then
   install_codex_shim
@@ -453,12 +507,15 @@ assert_agent_run_count cascade-tester-one oit-s1 1
 
 open_gate oit-s1
 wait_for_bead_closed oit-s1
+wait_for_bead_closed_event oit-s1
 wait_for_agent_run cascade-tester-two oit-s2
 open_gate oit-s2
 wait_for_bead_closed oit-s2
+wait_for_bead_closed_event oit-s2
 wait_for_agent_run cascade-tester-three oit-s3
 open_gate oit-s3
 wait_for_bead_closed oit-s3
+wait_for_bead_closed_event oit-s3
 wait_for_mayor_mail
 stop_orchestrator "$second_orchestrator_pid"
 

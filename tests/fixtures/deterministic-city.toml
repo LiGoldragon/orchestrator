@@ -46,7 +46,7 @@ max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-one --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
 [agent.option_defaults]
-model = "gpt-5.3-codex-spark"
+model = "gpt-5.4-nano"
 effort = "low"
 permission_mode = "unrestricted"
 
@@ -58,7 +58,7 @@ max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-two --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
 [agent.option_defaults]
-model = "gpt-5.3-codex-spark"
+model = "gpt-5.4-nano"
 effort = "low"
 permission_mode = "unrestricted"
 
@@ -70,7 +70,7 @@ max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-three --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
 [agent.option_defaults]
-model = "gpt-5.3-codex-spark"
+model = "gpt-5.4-nano"
 effort = "low"
 permission_mode = "unrestricted"
 

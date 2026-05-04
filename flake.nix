@@ -59,7 +59,37 @@
             cargoArtifacts
             gascityPackage
             beadsPackage
-            ;
+          ;
+        };
+      mkIntegrationLive =
+        system: context:
+        context.pkgs.writeShellApplication {
+          name = "orchestrator-integration-live";
+          runtimeInputs = [
+            self.packages.${system}.default
+            context.beadsPackage
+            context.gascityPackage
+            context.pkgs.bash
+            context.pkgs.coreutils
+            context.pkgs.codex
+            context.pkgs.dolt
+            context.pkgs.findutils
+            context.pkgs.git
+            context.pkgs.gnugrep
+            context.pkgs.jq
+            context.pkgs.lsof
+            context.pkgs.python3
+            context.pkgs.procps
+            context.pkgs.tmux
+            context.pkgs.util-linux
+          ];
+          text = ''
+            export ORCHESTRATOR_BIN="${self.packages.${system}.default}/bin/orchestrator"
+            export ORCHESTRATOR_TEST_CITY_TOML="${./tests/fixtures/deterministic-city.toml}"
+            export ORCHESTRATOR_ISOLATED_TEST_SCRIPT="${./tests/scripts/orchestrator-isolated-gc-test.sh}"
+            export ORCHESTRATOR_LIVE_CODEX_MODELS="''${ORCHESTRATOR_LIVE_CODEX_MODELS:-gpt-5.4-nano gpt-5.4-mini}"
+            exec bash "${./tests/scripts/orchestrator-live-gc-test.sh}" "$@"
+          '';
         };
     in
     {
@@ -77,6 +107,20 @@
               meta.mainProgram = "orchestrator";
             }
           );
+          integration-live = mkIntegrationLive system context;
+        }
+      );
+
+      apps = forSystems (
+        system:
+        let
+          integrationLive = self.packages.${system}.integration-live;
+        in
+        {
+          integration-live = {
+            type = "app";
+            program = "${integrationLive}/bin/orchestrator-integration-live";
+          };
         }
       );
 
