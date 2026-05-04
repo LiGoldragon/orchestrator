@@ -48,7 +48,7 @@ scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=ca
 [agent.option_defaults]
 model = "gpt-5.3-codex-spark"
 effort = "low"
-permission_mode = "auto-edit"
+permission_mode = "unrestricted"
 
 [[agent]]
 name = "cascade-tester-two"
@@ -60,7 +60,7 @@ scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=ca
 [agent.option_defaults]
 model = "gpt-5.3-codex-spark"
 effort = "low"
-permission_mode = "auto-edit"
+permission_mode = "unrestricted"
 
 [[agent]]
 name = "cascade-tester-three"
@@ -72,7 +72,7 @@ scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=ca
 [agent.option_defaults]
 model = "gpt-5.3-codex-spark"
 effort = "low"
-permission_mode = "auto-edit"
+permission_mode = "unrestricted"
 
 [[named_session]]
 template = "mayor"

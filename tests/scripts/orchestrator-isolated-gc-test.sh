@@ -129,6 +129,14 @@ case " $* " in
     ;;
 esac
 
+case " $* " in
+  *" --dangerously-bypass-approvals-and-sandbox "*) ;;
+  *)
+    printf 'codex shim: expected isolated unrestricted permission flag in args: %s\n' "$*" >&2
+    exit 1
+    ;;
+esac
+
 bash "$city_path/agents/cascade-test-agent/run.sh" "$target_agent"
 EOF
   chmod +x "$bin_dir/codex"

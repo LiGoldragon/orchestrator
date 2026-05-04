@@ -65,3 +65,54 @@ does not edit city `pack.toml`; that remains mayor-authored.
 - Review `src/gc.rs:80` (gc command boundary): all effects cross there.
 - Decide whether skip records for non-cascade beads should remain in
   redb or be reduced to stderr-only logging once live volume is known.
+
+## cr-8g3x09 Integration Harness
+
+Run the isolated Gas City cascade test with:
+
+```sh
+nix flake check
+nix build .#checks.x86_64-linux.orchestrator-integration
+```
+
+The flake check wires the integration check through
+`flake.nix:96` (orchestrator integration check). The Rust harness at
+`tests/integration_cascade.rs:53` (isolated cascade test) invokes
+`tests/scripts/orchestrator-isolated-gc-test.sh:1` (isolated Gas City
+shell harness). The fixture at `tests/fixtures/deterministic-city.toml:49`
+(Codex Spark model default) sets `model = "gpt-5.3-codex-spark"`,
+`effort = "low"`, and unrestricted permission mode so the new Gas City
+Codex provider schema emits the expected Codex CLI flags.
+
+The environment contract is the safety boundary. The script keeps
+`HOME` pointed at the real platform home so Codex subscription auth can
+be read, while `GC_HOME`, `XDG_RUNTIME_DIR`, `DOLT_ROOT_PATH`, `TMPDIR`,
+and the city root are all under a throwaway test root; see
+`tests/scripts/orchestrator-isolated-gc-test.sh:145` (isolated env
+wrapper). Host lifecycle commands are shadowed by local no-op shims at
+`tests/scripts/orchestrator-isolated-gc-test.sh:86` (host command
+shims), and the supervisor starts as a child process at
+`tests/scripts/orchestrator-isolated-gc-test.sh:187` (isolated
+supervisor start). A full container is not used because real Codex
+sessions need normal access to subscription auth and network; the test
+isolates Gas City state instead of hiding the whole process tree.
+
+The integration path could break if Gas City changes Codex provider
+option names, `gc sling` metadata, bd JSON output, or supervisor status
+text. The shim mode checks that `gpt-5.3-codex-spark`, low effort, and
+unrestricted permission flags are actually passed to Codex before it
+runs the deterministic local test agent; see
+`tests/scripts/orchestrator-isolated-gc-test.sh:116` (Codex argument
+checks). The live-cost path still uses a research-preview Codex model,
+so manual runs without shim mode may spend subscription/API budget.
+
+Second-reviewer focus for this harness:
+
+- `tests/scripts/orchestrator-isolated-gc-test.sh:145` (isolated env
+  wrapper) should be checked first for leaks into live `~/.gc`.
+- `tests/scripts/orchestrator-isolated-gc-test.sh:326` (cascade bead
+  creation) should be checked against the cascade metadata contract.
+- `tests/scripts/orchestrator-isolated-gc-test.sh:452` (restart
+  idempotence assertion) should be checked for double-dispatch coverage.
+- `flake.nix:96` (integration check inputs) should be checked whenever
+  `gascity-nix` changes its package or runtime dependency surface.
