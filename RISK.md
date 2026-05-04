@@ -79,10 +79,10 @@ The flake check wires the integration check through
 `flake.nix:96` (orchestrator integration check). The Rust harness at
 `tests/integration_cascade.rs:53` (isolated cascade test) invokes
 `tests/scripts/orchestrator-isolated-gc-test.sh:1` (isolated Gas City
-shell harness). The fixture at `tests/fixtures/deterministic-city.toml:49`
-(Codex Spark model default) sets `model = "gpt-5.3-codex-spark"`,
-`effort = "low"`, and unrestricted permission mode so the new Gas City
-Codex provider schema emits the expected Codex CLI flags.
+shell harness). The fixture at `tests/fixtures/deterministic-city.toml:37`
+(Codex mini model default) sets `model = "gpt-5.4-mini"`, low reasoning
+effort, and unrestricted permission mode so the Gas City Codex provider
+schema emits the expected Codex CLI flags.
 
 The environment contract is the safety boundary. The script keeps
 `HOME` pointed at the real platform home so Codex subscription auth can
@@ -99,7 +99,7 @@ isolates Gas City state instead of hiding the whole process tree.
 
 The integration path could break if Gas City changes Codex provider
 option names, `gc sling` metadata, bd JSON output, or supervisor status
-text. The shim mode checks that `gpt-5.3-codex-spark`, low effort, and
+text. The shim mode checks that `gpt-5.4-mini`, low effort, and
 unrestricted permission flags are actually passed to Codex before it
 runs the deterministic local test agent; see
 `tests/scripts/orchestrator-isolated-gc-test.sh:116` (Codex argument
@@ -116,3 +116,72 @@ Second-reviewer focus for this harness:
   idempotence assertion) should be checked for double-dispatch coverage.
 - `flake.nix:96` (integration check inputs) should be checked whenever
   `gascity-nix` changes its package or runtime dependency surface.
+
+## cr-grv2l7 Live Codex Integration
+
+The live integration app now runs as `nix run .#integration-live`
+through `flake.nix:57` (integration-live app derivation). It builds the
+orchestrator, Gas City, beads, Codex, tmux, Dolt, and the shell harness
+with Nix, then executes outside the build sandbox so Codex auth and
+network access are available.
+
+### What This Patch Could Break
+
+- The live test defaults to `gpt-5.4-mini` because the observed account
+  rejects `gpt-5.4-nano`; follow-up is tracked in `cr-ppszq1` (Codex
+  nano account rejection). If nano access later appears, the model list
+  can still be overridden through `ORCHESTRATOR_LIVE_CODEX_MODELS`.
+- The live script renders a per-attempt `[session].socket` into the city
+  fixture at `tests/scripts/orchestrator-live-gc-test.sh:41` (live
+  fixture renderer). This prevents stale `tmux -L city` sessions from
+  adopting a preserved test city's environment, but an invalid custom
+  `ORCHESTRATOR_LIVE_TMUX_SOCKET_PREFIX` could still create a bad tmux
+  socket name.
+- The live fixture rewrites Codex start commands to the isolated proxy
+  path at `tests/scripts/orchestrator-live-gc-test.sh:115` (absolute
+  Codex proxy rewrite). This keeps Codex invocation logs and copied
+  `CODEX_HOME` authoritative, but it means any future fixture that stops
+  spelling `start_command = "codex exec ..."` needs a matching renderer
+  update.
+- The real Codex proxy now ignores normal teardown statuses 130 and 143
+  at `tests/scripts/orchestrator-isolated-gc-test.sh:209` (Codex
+  status classifier). That avoids treating orchestrator-owned session
+  cleanup as a failed next step; a true Codex error still needs a
+  non-teardown exit status to fail fast.
+
+### Test Coverage
+
+- `bash -n tests/scripts/orchestrator-live-gc-test.sh
+  tests/scripts/orchestrator-isolated-gc-test.sh` passes.
+- `nix build --no-link .#integration-live` passes.
+- `nix build --no-link --print-build-logs
+  .#checks.x86_64-linux.orchestrator-integration` passes, including the
+  shim-mode three-bead cascade and mayor-mail assertion.
+- `nix flake check --print-build-logs` passes for `x86_64-linux`;
+  Nix reports `aarch64-linux` omitted as incompatible on this host.
+- `ORCHESTRATOR_KEEP_TEST_ROOT=1 nix run .#integration-live` passes with
+  default mini-only live mode. Latest preserved root:
+  `/tmp/orchestrator-live.THJ3w4` (mini-only live cascade pass).
+
+### Cross-Rig Effects
+
+- `gascity-nix 758917c` (fork pin for gpt-5.4 schema) points at
+  `LiGoldragon/gascity 4e8fc326` (gpt-5.4 model schema fork).
+- `orchestrator 8830e72` (default live cascade to mini) is the
+  mini-only live harness checkpoint.
+- The test writes only isolated temp roots under `/tmp/orchestrator-live.*`.
+  It does not run host `systemctl --user`, host `gc supervisor
+  restart/stop`, or edit Criopolis city files.
+
+### Second-Reviewer Focus
+
+- Check `tests/scripts/orchestrator-live-gc-test.sh:41` (fixture
+  renderer) first: it owns model rewrite, socket injection, and absolute
+  Codex proxy routing.
+- Check `tests/scripts/orchestrator-isolated-gc-test.sh:164` (real Codex
+  proxy) for environment isolation and log capture.
+- Check `tests/scripts/orchestrator-isolated-gc-test.sh:460` (agent run
+  wait) for the fail-fast contract against Codex invocation failures.
+- Check `tests/scripts/orchestrator-isolated-gc-test.sh:553` (mayor mail
+  assertion) because the bead acceptance criterion depends on the inbox
+  round-trip, not merely bead closure.
