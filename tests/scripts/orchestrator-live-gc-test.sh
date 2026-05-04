@@ -123,7 +123,7 @@ PY
 model_related_failure() {
   local log_path="$1"
   grep -Eiq \
-    'model_not_found|invalid[ _-]*model|unknown model|unsupported model|model[ _-]*(is )?not (available|found|supported)|model .*does not exist' \
+    'model_not_found|invalid[ _-]*model|unknown model|unsupported model|model.*not (available|found|supported)|not supported when using Codex|model .*does not exist' \
     "$log_path"
 }
 
