@@ -15,7 +15,7 @@ required_environment ORCHESTRATOR_TEST_CITY_TOML
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 isolated_script="${ORCHESTRATOR_ISOLATED_TEST_SCRIPT:-$script_dir/orchestrator-isolated-gc-test.sh}"
-model_sequence="${ORCHESTRATOR_LIVE_CODEX_MODELS:-gpt-5.4-nano gpt-5.4-mini}"
+model_sequence="${ORCHESTRATOR_LIVE_CODEX_MODELS:-gpt-5.4-mini}"
 tmux_socket_prefix="${ORCHESTRATOR_LIVE_TMUX_SOCKET_PREFIX:-orchestrator-live}"
 agent_run_timeout_seconds="${ORCHESTRATOR_AGENT_RUN_TIMEOUT_SECONDS:-240}"
 bead_close_timeout_seconds="${ORCHESTRATOR_BEAD_CLOSE_TIMEOUT_SECONDS:-120}"

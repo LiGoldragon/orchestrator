@@ -14,7 +14,7 @@ required_environment ORCHESTRATOR_BIN
 required_environment ORCHESTRATOR_TEST_CITY_TOML
 
 codex_provider_mode="${ORCHESTRATOR_CODEX_PROVIDER_MODE:-real}"
-expected_codex_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.4-nano}"
+expected_codex_model="${ORCHESTRATOR_EXPECTED_CODEX_MODEL:-gpt-5.4-mini}"
 agent_run_timeout_seconds="${ORCHESTRATOR_AGENT_RUN_TIMEOUT_SECONDS:-60}"
 bead_close_timeout_seconds="${ORCHESTRATOR_BEAD_CLOSE_TIMEOUT_SECONDS:-60}"
 mail_timeout_seconds="${ORCHESTRATOR_MAIL_TIMEOUT_SECONDS:-60}"

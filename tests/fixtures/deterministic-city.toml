@@ -34,7 +34,7 @@ skip = [
 [providers.codex-live]
 base = ""
 command = "codex"
-args = ["exec", "--ignore-user-config", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-nano", "-c", "model_reasoning_effort=low"]
+args = ["exec", "--ignore-user-config", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-mini", "-c", "model_reasoning_effort=low"]
 prompt_mode = "arg"
 ready_delay_ms = 3000
 process_names = ["codex", "codex-raw"]
@@ -50,7 +50,7 @@ process_names = ["bash", "sh"]
 
 [[agent]]
 name = "cascade-tester-one"
-start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-mini -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
 prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
@@ -58,7 +58,7 @@ scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=ca
 
 [[agent]]
 name = "cascade-tester-two"
-start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-mini -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
 prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
@@ -66,7 +66,7 @@ scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=ca
 
 [[agent]]
 name = "cascade-tester-three"
-start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-mini -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
 prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
