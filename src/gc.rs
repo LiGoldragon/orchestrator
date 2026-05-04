@@ -53,7 +53,12 @@ impl GcClient {
     }
 
     pub fn sling(&self, target_agent: &AgentName, bead_id: &BeadId) -> Result<()> {
-        self.output(["sling", target_agent.as_str(), bead_id.as_str()])?;
+        self.output([
+            "sling",
+            target_agent.as_str(),
+            bead_id.as_str(),
+            "--no-formula",
+        ])?;
         Ok(())
     }
 

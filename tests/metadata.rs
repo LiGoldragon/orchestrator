@@ -66,3 +66,30 @@ fn order_tracking_label_blocks_dispatch() {
 
     assert!(!bead.is_dispatchable());
 }
+
+#[test]
+fn cascade_target_agent_is_dispatch_target_before_sling_stamp() {
+    let bead = CascadeBead::from_show_json(
+        r#"
+        [
+          {
+            "id": "cr-alpha",
+            "labels": ["cascade-chain"],
+            "metadata": {
+              "cascade_target_agent": "satya",
+              "cascade_position": "1"
+            }
+          }
+        ]
+        "#,
+    )
+    .expect("bead should parse");
+
+    assert_eq!(
+        bead.routed_to()
+            .expect("target should parse")
+            .expect("target should exist")
+            .as_str(),
+        "satya"
+    );
+}

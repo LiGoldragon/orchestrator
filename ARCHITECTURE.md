@@ -2,13 +2,14 @@
 
 The orchestrator daemon is the deterministic cascade dispatcher for
 Criopolis. It watches Gas City events, reads typed bead metadata, and
-routes the next bead in a cascade through `gc sling`.
+routes the next bead in a cascade through `gc sling --no-formula`.
 
 ## Role
 
 Criopolis cascade chains are ordinary beads with metadata:
 
-- `gc.routed_to` names the target agent.
+- `cascade_target_agent` names the target agent before dispatch.
+- `gc.routed_to` is the live route written by raw `gc sling` dispatch.
 - `cascade_position` names the bead's position in the chain.
 - `cascade_next` names the next bead id.
 - `cascade_final = "true"` marks the final bead.
@@ -27,7 +28,8 @@ Owns:
 - redb-backed dispatch records for restart introspection.
 - rkyv-archived dispatch records.
 - typed parsing of `gc events` JSON Lines and `gc bd show --json`.
-- deterministic calls to `gc sling` and `gc mail send --notify mayor`.
+- deterministic calls to `gc sling --no-formula` and
+  `gc mail send --notify mayor`.
 
 Does not own:
 

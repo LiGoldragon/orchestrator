@@ -93,7 +93,8 @@ impl CascadeBead {
     }
 
     pub fn routed_to(&self) -> Result<Option<AgentName>> {
-        self.metadata_field("gc.routed_to")
+        self.metadata_field("cascade_target_agent")
+            .or_else(|| self.metadata_field("gc.routed_to"))
             .filter(|value| !value.trim().is_empty())
             .map(AgentName::new)
             .transpose()

@@ -180,7 +180,10 @@ impl CascadeDispatcher {
             }
             Err(error) => return Err(error),
         };
-        let next_bead = self.next_bead_for(&bead)?;
+        let next_bead = match event.kind() {
+            OrchestratorEventKind::BeadClosed => self.next_bead_for(&bead)?,
+            OrchestratorEventKind::BeadCreated | OrchestratorEventKind::Other(_) => None,
+        };
         let decision = CascadeDecision::from_event_and_beads(event, &bead, next_bead.as_ref())?;
         decision.action().execute(&self.gc_client)?;
         Ok(CascadeDispatchRecord::from_event_and_action(
