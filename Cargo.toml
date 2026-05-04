@@ -1,0 +1,37 @@
+[package]
+name         = "orchestrator"
+version      = "0.1.0"
+edition      = "2024"
+rust-version = "1.85"
+license      = "MIT OR Apache-2.0"
+repository   = "https://github.com/LiGoldragon/orchestrator"
+description  = "Criopolis cascade orchestrator daemon."
+
+[lib]
+name = "orchestrator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "orchestrator"
+path = "src/main.rs"
+
+[dependencies]
+clap       = { version = "4", features = ["derive"] }
+redb       = "2"
+rkyv       = { version = "0.8", default-features = false, features = [
+    "std",
+    "bytecheck",
+    "little_endian",
+    "pointer_width_32",
+    "unaligned",
+] }
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror  = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unused = "warn"
+dead_code = "warn"
