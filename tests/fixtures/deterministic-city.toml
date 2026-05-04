@@ -50,24 +50,24 @@ process_names = ["bash", "sh"]
 
 [[agent]]
 name = "cascade-tester-one"
-provider = "codex-live"
-prompt_template = "agents/cascade-test-agent/prompt.template.md"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-one --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
 
 [[agent]]
 name = "cascade-tester-two"
-provider = "codex-live"
-prompt_template = "agents/cascade-test-agent/prompt.template.md"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-two --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
 
 [[agent]]
 name = "cascade-tester-three"
-provider = "codex-live"
-prompt_template = "agents/cascade-test-agent/prompt.template.md"
+start_command = "codex exec --ignore-user-config --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox --model gpt-5.4-nano -c model_reasoning_effort=low 'Run this command exactly once, then exit: bash \"$GC_CITY/agents/cascade-test-agent/run.sh\" \"$GC_AGENT\"'"
+prompt_mode = "none"
 max_active_sessions = 1
 process_names = ["codex", "codex-raw"]
 scale_check = "gc --city {{.CityRoot}} bd ready --metadata-field gc.routed_to=cascade-tester-three --unassigned --json 2>/dev/null | jq 'length' 2>/dev/null || echo 0"
