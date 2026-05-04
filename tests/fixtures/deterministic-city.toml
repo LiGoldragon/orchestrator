@@ -32,6 +32,7 @@ skip = [
 ]
 
 [providers.codex-live]
+base = ""
 command = "codex"
 args = ["--dangerously-bypass-approvals-and-sandbox", "--model", "gpt-5.4-nano", "-c", "model_reasoning_effort=low"]
 prompt_mode = "arg"
