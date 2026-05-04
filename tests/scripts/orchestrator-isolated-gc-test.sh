@@ -33,6 +33,7 @@ if [ -n "$platform_home" ] && [ "$real_home" != "$platform_home" ]; then
 fi
 
 host_codex_home="${ORCHESTRATOR_HOST_CODEX_HOME:-${CODEX_HOME:-$real_home/.codex}}"
+host_codex_binary="$(command -v codex || true)"
 
 if [ -n "${ORCHESTRATOR_TEST_ROOT:-}" ]; then
   root="$ORCHESTRATOR_TEST_ROOT"
@@ -75,6 +76,7 @@ city_dir="$root/city"
 state_path="$root/orchestrator.redb"
 bin_dir="$root/bin"
 codex_home="$root/codex-home"
+codex_invocation_log_dir="$root/codex-invocations"
 git_config_global="$gc_home/gitconfig"
 bash_path="$(command -v bash)"
 sh_path="$(command -v sh)"
@@ -157,6 +159,66 @@ esac
 bash "$city_path/agents/cascade-test-agent/run.sh" "$target_agent"
 EOF
   chmod +x "$bin_dir/codex"
+}
+
+install_real_codex_proxy() {
+  if [ -z "$host_codex_binary" ]; then
+    printf 'orchestrator integration: real Codex mode could not find codex in PATH\n' >&2
+    exit 1
+  fi
+
+  mkdir -p "$codex_invocation_log_dir"
+  cat >"$bin_dir/codex" <<EOF
+#!$bash_path
+set -euo pipefail
+
+real_codex_binary="$host_codex_binary"
+log_dir="$codex_invocation_log_dir"
+mkdir -p "\$log_dir"
+
+invocation_id="\$(date +%s)-\$\$"
+metadata_path="\$log_dir/\$invocation_id.meta"
+stdout_path="\$log_dir/\$invocation_id.stdout"
+stderr_path="\$log_dir/\$invocation_id.stderr"
+
+{
+  printf 'argv:'
+  printf ' %q' "\$@"
+  printf '\\n'
+  printf 'CODEX_HOME=%s\\n' "\${CODEX_HOME:-}"
+  printf 'GC_CITY=%s\\n' "\${GC_CITY:-}"
+  printf 'GC_AGENT=%s\\n' "\${GC_AGENT:-}"
+  printf 'GC_ALIAS=%s\\n' "\${GC_ALIAS:-}"
+} >"\$metadata_path"
+
+set +e
+"\$real_codex_binary" "\$@" >"\$stdout_path" 2>"\$stderr_path"
+status="\$?"
+set -e
+
+printf 'status=%s\\n' "\$status" >>"\$metadata_path"
+cat "\$stdout_path"
+cat "\$stderr_path" >&2
+exit "\$status"
+EOF
+  chmod +x "$bin_dir/codex"
+}
+
+codex_invocation_has_failed() {
+  [ -d "$codex_invocation_log_dir" ] \
+    && grep -R -Eq '^status=[1-9][0-9]*$' "$codex_invocation_log_dir" 2>/dev/null
+}
+
+print_codex_invocation_logs() {
+  if [ ! -d "$codex_invocation_log_dir" ]; then
+    return
+  fi
+
+  printf 'codex invocation logs: %s\n' "$codex_invocation_log_dir" >&2
+  find "$codex_invocation_log_dir" -maxdepth 1 -type f | sort | while read -r codex_log_path; do
+    printf '\n== %s ==\n' "$codex_log_path" >&2
+    cat "$codex_log_path" >&2 || true
+  done
 }
 
 run_isolated() {
@@ -386,10 +448,16 @@ wait_for_agent_run() {
   local log_path="$city_dir/.gc/cascade-test/agent-runs.tsv"
   local deadline=$((SECONDS + agent_run_timeout_seconds))
   until [ -f "$log_path" ] && grep -Fq "$target_agent	$bead_id" "$log_path"; do
+    if [ "$codex_provider_mode" = "real" ] && codex_invocation_has_failed; then
+      printf 'codex invocation exited before %s ran %s\n' "$target_agent" "$bead_id" >&2
+      print_codex_invocation_logs
+      exit 1
+    fi
     if [ "$SECONDS" -ge "$deadline" ]; then
       printf 'expected %s to run %s\n' "$target_agent" "$bead_id" >&2
       printf 'test root: %s\n' "$root" >&2
       [ -f "$log_path" ] && cat "$log_path" >&2
+      print_codex_invocation_logs
       run_isolated gc --city "$city_dir" bd show "$bead_id" --json >&2 || true
       run_isolated gc --city "$city_dir" bd ready \
         --metadata-field "gc.routed_to=$target_agent" \
@@ -485,6 +553,8 @@ seed_codex_home
 install_host_command_shims
 if [ "$codex_provider_mode" = "shim" ]; then
   install_codex_shim
+else
+  install_real_codex_proxy
 fi
 start_isolated_supervisor
 
