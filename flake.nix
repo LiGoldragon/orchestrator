@@ -88,6 +88,10 @@
             export ORCHESTRATOR_TEST_CITY_TOML="${./tests/fixtures/deterministic-city.toml}"
             export ORCHESTRATOR_ISOLATED_TEST_SCRIPT="${./tests/scripts/orchestrator-isolated-gc-test.sh}"
             export ORCHESTRATOR_LIVE_CODEX_MODELS="''${ORCHESTRATOR_LIVE_CODEX_MODELS:-gpt-5.4-nano gpt-5.4-mini}"
+            export ORCHESTRATOR_LIVE_TMUX_SOCKET_PREFIX="''${ORCHESTRATOR_LIVE_TMUX_SOCKET_PREFIX:-orchestrator-live-${system}}"
+            export ORCHESTRATOR_AGENT_RUN_TIMEOUT_SECONDS="''${ORCHESTRATOR_AGENT_RUN_TIMEOUT_SECONDS:-240}"
+            export ORCHESTRATOR_BEAD_CLOSE_TIMEOUT_SECONDS="''${ORCHESTRATOR_BEAD_CLOSE_TIMEOUT_SECONDS:-120}"
+            export ORCHESTRATOR_MAIL_TIMEOUT_SECONDS="''${ORCHESTRATOR_MAIL_TIMEOUT_SECONDS:-120}"
             exec bash "${./tests/scripts/orchestrator-live-gc-test.sh}" "$@"
           '';
         };
