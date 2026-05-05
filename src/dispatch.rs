@@ -94,7 +94,10 @@ impl CascadeDecision {
         next_bead: Option<&CascadeBead>,
     ) -> Result<Self> {
         if !bead.is_dispatchable() {
-            return Ok(Self::skip("bead is not a dispatchable cascade-chain bead"));
+            return Ok(Self::skip(format!(
+                "bead {} is not a dispatchable cascade-chain bead",
+                bead.bead_id()
+            )));
         }
 
         match event.kind() {
