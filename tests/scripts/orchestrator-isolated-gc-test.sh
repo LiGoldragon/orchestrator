@@ -156,7 +156,7 @@ case " $* " in
     ;;
 esac
 
-bash "$city_path/agents/cascade-test-agent/run.sh" "$target_agent"
+exec -a codex bash "$city_path/agents/cascade-test-agent/run.sh" "$target_agent"
 EOF
   chmod +x "$bin_dir/codex"
 }

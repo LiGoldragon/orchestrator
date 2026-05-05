@@ -3,7 +3,7 @@
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::{
-    AgentName, BeadId, CascadeBead, CascadeId, Error, GcClient, OrchestratorEvent,
+    AgentName, BeadId, CascadeBead, CascadeId, Error, EventCursor, GcClient, OrchestratorEvent,
     OrchestratorEventKind, Result,
 };
 
@@ -80,6 +80,24 @@ impl CascadeAction {
             Self::Skip { .. } | Self::StartChain { .. } | Self::AdvanceChain { .. } => None,
         }
     }
+
+    pub fn recorded_duplicate_reason(&self) -> Option<String> {
+        match self {
+            Self::StartChain { bead_id, .. } => Some(format!(
+                "start-chain for bead {bead_id} is already recorded"
+            )),
+            Self::AdvanceChain { bead_id, .. } => Some(format!(
+                "advance-chain for bead {bead_id} is already recorded"
+            )),
+            Self::SignalComplete {
+                cascade_id,
+                final_bead_id,
+            } => Some(format!(
+                "completion for cascade {cascade_id} final bead {final_bead_id} is already recorded"
+            )),
+            Self::Skip { .. } => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,7 +119,9 @@ impl CascadeDecision {
         }
 
         match event.kind() {
-            OrchestratorEventKind::BeadCreated => Self::from_created_bead(bead),
+            OrchestratorEventKind::BeadCreated | OrchestratorEventKind::BeadUpdated => {
+                Self::from_start_candidate_bead(bead)
+            }
             OrchestratorEventKind::BeadClosed => Self::from_closed_bead(bead, next_bead),
             OrchestratorEventKind::Other(_) => Ok(Self::skip("event kind is not cascade-relevant")),
         }
@@ -111,7 +131,7 @@ impl CascadeDecision {
         &self.action
     }
 
-    fn from_created_bead(bead: &CascadeBead) -> Result<Self> {
+    fn from_start_candidate_bead(bead: &CascadeBead) -> Result<Self> {
         if bead.position()? == Some(1) {
             Ok(Self {
                 action: CascadeAction::StartChain {
@@ -120,7 +140,7 @@ impl CascadeDecision {
                 },
             })
         } else {
-            Ok(Self::skip("created bead is not cascade position 1"))
+            Ok(Self::skip("bead is not cascade position 1"))
         }
     }
 
@@ -171,7 +191,11 @@ impl CascadeDispatcher {
         Self { gc_client }
     }
 
-    pub fn dispatch(&self, event: &OrchestratorEvent) -> Result<CascadeDispatchRecord> {
+    pub fn dispatch(
+        &self,
+        event: &OrchestratorEvent,
+        dispatch_history: &EventCursor,
+    ) -> Result<CascadeDispatchRecord> {
         let bead = match self.gc_client.bead(event.bead_id()) {
             Ok(bead) => bead,
             Err(Error::MissingBead { bead_id }) => {
@@ -185,9 +209,20 @@ impl CascadeDispatcher {
         };
         let next_bead = match event.kind() {
             OrchestratorEventKind::BeadClosed => self.next_bead_for(&bead)?,
-            OrchestratorEventKind::BeadCreated | OrchestratorEventKind::Other(_) => None,
+            OrchestratorEventKind::BeadCreated
+            | OrchestratorEventKind::BeadUpdated
+            | OrchestratorEventKind::Other(_) => None,
         };
         let decision = CascadeDecision::from_event_and_beads(event, &bead, next_bead.as_ref())?;
+        if let Some(duplicate_reason) = decision.action().recorded_duplicate_reason() {
+            if dispatch_history.has_recorded_action(decision.action())? {
+                let action = CascadeAction::Skip {
+                    reason: duplicate_reason,
+                };
+                action.execute(&self.gc_client)?;
+                return Ok(CascadeDispatchRecord::from_event_and_action(event, &action));
+            }
+        }
         decision.action().execute(&self.gc_client)?;
         Ok(CascadeDispatchRecord::from_event_and_action(
             event,
@@ -232,6 +267,13 @@ impl CascadeDispatchRecord {
 
     pub fn action(&self) -> &str {
         &self.action
+    }
+
+    pub fn describes_action(&self, action: &CascadeAction) -> bool {
+        self.action == action.action_name()
+            && self.target_agent.as_deref() == action.target_agent().map(AgentName::as_str)
+            && self.target_bead_id.as_deref() == action.target_bead_id().map(BeadId::as_str)
+            && self.cascade_id.as_deref() == action.cascade_id().map(CascadeId::as_str)
     }
 
     pub fn archived_bytes(&self) -> Result<Vec<u8>> {

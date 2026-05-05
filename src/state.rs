@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use redb::{Database, ReadableTable, TableDefinition};
 
-use crate::{CascadeDispatchRecord, Error, EventSequence, Result};
+use crate::{CascadeAction, CascadeDispatchRecord, Error, EventSequence, Result};
 
 const CURSOR_TABLE: TableDefinition<&str, u64> = TableDefinition::new("cursor");
 const DISPATCH_TABLE: TableDefinition<u64, &[u8]> = TableDefinition::new("dispatch");
@@ -85,6 +85,23 @@ impl EventCursor {
             count += 1;
         }
         Ok(count)
+    }
+
+    pub fn has_recorded_action(&self, action: &CascadeAction) -> Result<bool> {
+        let read_transaction = self.database.begin_read().map_err(Error::state)?;
+        let table = read_transaction
+            .open_table(DISPATCH_TABLE)
+            .map_err(Error::state)?;
+
+        for row in table.iter().map_err(Error::state)? {
+            let (_, stored_bytes) = row.map_err(Error::state)?;
+            let record = CascadeDispatchRecord::from_archived_bytes(stored_bytes.value())?;
+            if record.describes_action(action) {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 
     fn ensure_tables(&self) -> Result<()> {

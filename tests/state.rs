@@ -47,6 +47,19 @@ fn dispatch_record_round_trips_through_rkyv_and_redb() {
     cursor
         .record_dispatch(&record)
         .expect("dispatch record should persist");
+    assert!(
+        cursor
+            .has_recorded_action(&action)
+            .expect("recorded action lookup should read")
+    );
+    assert!(
+        !cursor
+            .has_recorded_action(&CascadeAction::StartChain {
+                target_agent: AgentName::new("viveka").expect("agent name should be valid"),
+                bead_id: BeadId::new("cr-alpha").expect("bead id should be valid"),
+            })
+            .expect("different recorded action lookup should read")
+    );
     assert_eq!(
         cursor
             .recorded_dispatch_count()

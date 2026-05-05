@@ -1,6 +1,29 @@
 use orchestrator::CascadeBead;
 
 #[test]
+fn parses_real_gc_bead_show_json() {
+    let bead = CascadeBead::from_show_json(include_str!("fixtures/real-bead-show.json"))
+        .expect("real bead show JSON should parse");
+
+    assert!(bead.is_dispatchable());
+    assert_eq!(bead.position().expect("position should parse"), Some(1));
+    assert_eq!(
+        bead.routed_to()
+            .expect("target should parse")
+            .expect("target should exist")
+            .as_str(),
+        "cascade-tester"
+    );
+    assert_eq!(
+        bead.cascade_next()
+            .expect("next bead should parse")
+            .expect("next bead should exist")
+            .as_str(),
+        "oit-54m"
+    );
+}
+
+#[test]
 fn parses_cascade_metadata_from_bead_show_json() {
     let bead = CascadeBead::from_show_json(
         r#"

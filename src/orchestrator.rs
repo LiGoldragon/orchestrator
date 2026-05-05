@@ -98,7 +98,7 @@ impl Orchestrator {
         let mut processed_events = 0;
 
         for event in batch.into_events() {
-            let record = self.dispatcher.dispatch(&event)?;
+            let record = self.dispatcher.dispatch(&event, &self.event_cursor)?;
             self.event_cursor.record_dispatch(&record)?;
             self.event_cursor.advance(event.sequence())?;
             processed_events += 1;

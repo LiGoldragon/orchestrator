@@ -51,6 +51,30 @@ fn created_position_one_starts_chain() {
 }
 
 #[test]
+fn updated_position_one_starts_chain_after_label_arrives() {
+    let bead = CascadeFixture::bead(
+        "cr-alpha",
+        &["cascade-chain"],
+        &[("gc.routed_to", "satya"), ("cascade_position", "1")],
+    );
+
+    let decision = CascadeDecision::from_event_and_beads(
+        &CascadeFixture::event(OrchestratorEventKind::BeadUpdated),
+        &bead,
+        None,
+    )
+    .expect("decision should succeed");
+
+    assert_eq!(
+        decision.action(),
+        &CascadeAction::StartChain {
+            target_agent: AgentName::new("satya").expect("agent name should be valid"),
+            bead_id: BeadId::new("cr-alpha").expect("bead id should be valid"),
+        }
+    );
+}
+
+#[test]
 fn closed_bead_with_next_advances_chain() {
     let bead = CascadeFixture::bead(
         "cr-alpha",
