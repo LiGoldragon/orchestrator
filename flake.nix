@@ -22,7 +22,10 @@
       gascity-nix,
     }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
       forSystems = function: nixpkgs.lib.genAttrs systems (system: function system);
 
       mkContext =
@@ -41,7 +44,13 @@
             "rust-src"
           ];
           craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-          src = craneLib.cleanCargoSource ./.;
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources ./.)
+              ./tests/fixtures
+            ];
+          };
           commonArgs = {
             inherit src;
             strictDeps = true;
@@ -59,7 +68,7 @@
             cargoArtifacts
             gascityPackage
             beadsPackage
-          ;
+            ;
         };
       mkIntegrationLive =
         system: context:
